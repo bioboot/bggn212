@@ -1,2 +1,2 @@
 # bggn212
-Bioinformatics class
+Bioinformatics class at UCSD
