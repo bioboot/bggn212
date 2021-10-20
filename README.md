@@ -1,2 +1,2 @@
 # bggn212
-Bioinformatics class at UC San Diego Fall 2021
+Bioinformatics class at UC San Diego Fall 2021 in persson class.
