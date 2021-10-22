@@ -2,7 +2,7 @@
 title: "Machine Learning 1"
 author: 'Barry (PID: 911)'
 date: "10/22/2021"
-output: pdf_document
+output: github_document
 ---
 
 # Clustering methods
@@ -152,6 +152,17 @@ We are after the pca$x component for this plot...
 plot(pca$x[,1:2])
 text(pca$x[,1:2], labels = colnames(x))
 ```
+
+```{r}
+library(ggplot2)
+df <- as.data.frame(pca$x)
+
+ggplot(df) + 
+  aes(x=PC1, y=PC2, label=rownames(df)) +
+  geom_text()
+```
+
+
 
 We can also examine the PCA "loadings", which tell us how much the original variables contribute to each new PC...
 
