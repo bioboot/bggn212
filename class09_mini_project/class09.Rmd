@@ -1,0 +1,144 @@
+---
+title: 'Class 9: Machine learning mini-project'
+author: 'Barry (PID: 911)'
+date: "10/29/2021"
+output: html_document
+---
+
+# Read the cancer cell data
+
+```{r}
+url <- "https://bioboot.github.io/bimm143_S20/class-material/WisconsinCancer.csv"
+
+# Download the data: wisc.df
+wisc.df <- read.csv(url, row.names=1)
+
+```
+
+Setup diagnoses vector and data frame for analysis
+```{r}
+wisc.data <- wisc.df[,-1]
+diagnosis <- as.factor(wisc.df$diagnosis)
+```
+
+# PCA with scalling
+
+```{r}
+wisc.pr <- prcomp(wisc.data, scale=TRUE)
+```
+
+## PCA score plot
+Quick PC1 vs PC2 plot
+```{r}
+plot(wisc.pr$x[,1:2], col=diagnosis)
+```
+
+
+# 3. Hierarchical clustering
+
+```{r}
+# Scale the wisc.data data: data.scaled
+data.scaled <- scale(wisc.data)
+data.dist <- dist(data.scaled)
+wisc.hclust <- hclust(data.dist)
+plot(wisc.hclust)
+```
+Cut the tree into 4 groups
+```{r}
+wisc.hclust.clusters <- cutree(wisc.hclust, k=4)
+```
+
+Compare to diagnosis results
+
+```{r}
+table(wisc.hclust.clusters, diagnosis)
+```
+
+# 5. Combining methods
+
+Here we aim to combine our PCA results with clustering. Essentially, we are going to cluster in "PC space", that is cluster on the `wisc.pr$x` results.
+
+```{r}
+plot(wisc.pr$x[,1:2], col=diagnosis)
+```
+
+```{r}
+summary(wisc.pr)
+```
+
+
+## Cluster my PCA results
+
+I will use 4 PCs and `hclust()` and `dist()` as an input.
+```{r}
+wisc.pr.hclust <- hclust( dist(wisc.pr$x[,1:4]), method="ward.D2" )
+```
+
+```{r}
+plot(wisc.pr.hclust)
+abline(h=80, col="red")
+```
+
+Let's find our cluster membership vectoe by cutting this tree into k=2 groups.
+
+```{r}
+grps <- cutree(wisc.pr.hclust, k=2)
+table(grps)
+```
+
+Now let's compare to the expert M and B vector
+
+```{r}
+table(diagnosis)
+```
+
+We can do a cross-table by giving the `table()` function two inputs.
+
+```{r}
+table(grps, diagnosis)
+```
+
+**Accuracy**, essentially how many did we get correct?
+```{r}
+(165+351) / nrow(wisc.data)
+```
+**Sensitivity** refers to a test’s ability to correctly detect ill patients who do have the condition. In our example here the sensitivity is the total number of samples in the cluster identified as predominantly malignant (cancerous) divided by the total number of known malignant samples. In other words: TP/(TP+FN).
+
+```{r}
+165/(165+6)
+```
+**Specificity** relates to a test’s ability to correctly reject healthy patients without a condition. In our example specificity is the proportion of benign (not cancerous) samples in the cluster identified as predominantly benign that are known to be benign. In other words: TN/(TN+FN).
+
+```{r}
+351/(351+47)
+```
+
+# 7. Prediction
+We will use the `predict()` function that will take our PCA model from before and new cancer cell data and project that data onto our PCA space.
+
+```{r}
+url <- "https://tinyurl.com/new-samples-CSV"
+new <- read.csv(url)
+npc <- predict(wisc.pr, newdata=new)
+#npc
+```
+
+
+Now add these new samples to our PCA plot
+```{r}
+plot(wisc.pr$x[,1:2], col=diagnosis)
+points(npc[,1], npc[,2], col="blue", pch=16, cex=3)
+text(npc[,1], npc[,2], labels=c(1,2), col="white")
+```
+
+
+
+
+
+
+
+
+
+
+
+
