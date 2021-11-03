@@ -1,0 +1,489 @@
+---
+title: "Class 10: Halloween Mini-Project"
+subtitle: 'Exploratory Analysis of Halloween Candy'
+output:
+    html_document:
+        keep_md: true
+        theme: cosmo
+        highlight: pygments
+        toc: true
+        toc_float: true
+        toc_depth: 2
+        number_sections: false
+        code_folding: show
+        df_print: paged
+---
+
+```{=html}
+<style> 
+h1, .h1 {
+    margin-top: 50px;
+}
+h2, .h2, h3, .h3 {
+    margin-top: 30px;
+}
+body{
+  font-size: 12pt;
+}
+.q_box { 
+  display: block;
+  border: 1px solid Gray; 
+  border-radius: 8px;
+    width: 90%;
+    left: 6px;
+    padding: 5px 5px 5px 15px;
+    color: Red;
+    margin-top: 20px;
+    margin-bottom: 25px;
+}
+.image-left {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  float: left;
+}
+.image-right {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  float: right;
+}
+</style>
+```
+Barry Grant \< <http://thegrantlab.org/teaching/> \>\
+2021-10-26 (19:58:47 PDT on Tue, Oct 26)
+
+# Background
+
+::: {style="float: right"}
+![](candy.png "Candy"){width="318"}
+:::
+
+In this mini-project, you will explore FiveThirtyEight's [Halloween Candy dataset](https://github.com/fivethirtyeight/data/tree/master/candy-power-ranking). FiveThirtyEight, sometimes rendered as just [**538**](https://fivethirtyeight.com), is an American website that focuses mostly on opinion poll analysis, politics, economics, and sports blogging. They recently ran a rather large poll to determine which candy their readers like best. From their website: *"While we don't know who exactly voted, we do know this: 8,371 different IP addresses voted on about 269,000 randomly generated candy matchups"*. 
+
+So what is the top ranked snack-sized Halloween candy? What made some candies more desirable than others? Was it price? Maybe it was just sugar content? Were they chocolate? Did they contain peanuts or almonds? How about crisped rice or other biscuit-esque component, like a Kit Kat or malted milk ball? Was it fruit flavored? Was it made of hard candy, like a lollipop or a strawberry bon bon? Was there nougat? What even is nougat? I know I like nougat, but I still have no real clue what the damn thing is.
+
+> Your task is to explore their candy dataset to find out answers to these types of questions - but most of all your job is to have fun, learn by doing hands on data analysis, and hopefully make this type of analysis less frightining for the future! **Let's get started.**
+
+# 1. Importing candy data
+
+
+First things first, let's get the data from the FiveThirtyEight GitHub repo. You can either read from the URL directely or download this [candy-data.csv](https://raw.githubusercontent.com/fivethirtyeight/data/master/candy-power-ranking/candy-data.csv) file and place it in your project directory. Either way we need to load it up with `read.csv()` and inspect the data to see exactly what we're dealing with.
+
+```{r, eval=FALSE}
+candy_file <- "candy-data.csv"
+
+candy = ____(____, row.names=1)
+head(candy)
+```
+
+```{r, echo=FALSE}
+candy_file <- "https://raw.githubusercontent.com/fivethirtyeight/data/master/candy-power-ranking/candy-data.csv"
+
+candy = read.csv(candy_file, row.names=1)
+
+# fix for funny M&M's etc.
+row.names(candy) <- gsub("Õ","",rownames(candy))
+head(candy)
+```
+
+### What is in the dataset?
+
+The dataset includes all sorts of information about different kinds of candy. For example, is a candy chocolaty? Does it have nougat? How does its cost compare to other candies? How many people prefer one candy over another?
+
+According to 538 the columns in the dataset include:
+
+-   **chocolate**: Does it contain chocolate?
+-   **fruity**: Is it fruit flavored?
+-   **caramel**: Is there caramel in the candy?
+-   **peanutyalmondy**: Does it contain peanuts, peanut butter or almonds?
+-   **nougat**: Does it contain nougat?
+-   **crispedricewafer**: Does it contain crisped rice, wafers, or a cookie component?
+-   **hard**: Is it a hard candy?
+-   **bar**: Is it a candy bar?
+-   **pluribus**: Is it one of many candies in a bag or box?
+-   **sugarpercent**: The percentile of sugar it falls under within the data set.
+-   **pricepercent**: The unit price percentile compared to the rest of the set.
+-   **winpercent**: The overall win percentage according to 269,000 matchups (more on this in a moment).
+
+> We will take a whirlwind tour of this dataset and in the process answer the questions highlighted in red throught this page that aim to guide your exploration process. We will then wrap up by trying Principal Component Analysis (PCA) on this dataset to get yet more experience with this important multivariate method. It will yield a kind of *"Map of Hallowen Candy Space"*. How cool is that! Let's explore...
+
+::: {.q_box}
+-   **Q1**. How many different candy types are in this dataset?
+-   **Q2**. How many fruity candy types are in the dataset?
+
+> The functions `dim()`, `nrow()`, `table()` and `sum()` may be useful for answering the first 2 questions.
+:::
+
+# 2. What is your favorate candy?
+
+One of the most interesting variables in the dataset is `winpercent`. For a given candy this value is the percentage of people who prefer this candy over another randomly chosen candy from the dataset (what 538 term a matchup). Higher values indicate a more popular candy.
+
+
+We can find the `winpercent` value for Twix by using its name to access the corresponding row of the dataset. This is because the dataset has each candy name as `rownames` (recall that we set this when we imported the original CSV file). For example the code for Twix is:
+
+```{r}
+candy["Twix", ]$winpercent
+```
+
+::: {.q_box}
+- **Q3**. What is your favorite candy in the dataset and what is it's `winpercent` value?
+- **Q4**. What is the `winpercent` value for "Kit Kat"?
+- **Q5**. What is the `winpercent` value for "Tootsie Roll Snack Bars"?
+:::
+
+
+> **Side-note**: the skimr::skim() function
+>
+> There is a useful `skim()` function in the **skimr** package that can help give you a quick overview of a given dataset. Let's install this package and try it on our candy data.
+> 
+> ```{r}
+> library("skimr")
+> skim(candy)
+> ```
+
+From your use of the `skim()` function use the output to answer the following:
+
+::: {.q_box}
+- **Q6**. Is there any variable/column that looks to be on a different scale to the majority of the other columns in the dataset?
+- **Q7**. What do you think a zero and one represent for the `candy$chocolate` column?
+
+> **Hint**: look at the "Variable type" print out from the `skim()` function. Most varables (i.e. columns) are on the zero to one scale but not all. Some columns such as `chocolate` are exclusively either zero or one values.
+:::
+
+
+
+
+
+A good place to start any exploratory analysis is with a histogram. You can do this most easily with the base R function `hist()`. Alternatively, you can use `ggplot()` with `geom_hist()`. Either works well in this case and (as always) its your choice.
+
+::: {.q_box}
+- **Q8**. Plot a histogram of `winpercent` values
+- **Q9**. Is the distribution of `winpercent` values symmetrical? 
+- **Q10**. Is the center of the distribution above or below 50%?
+- **Q11**. On average is chocolate candy higher or lower ranked than fruit candy?
+- **Q12**. Is this difference statistically significant? 
+
+> **Hint**: The `chocolate`, `fruity`, `nougat` etc. columns indicate if a given candy has this feature (i.e. one if it has nougart, zero if it does not etc.). We can turn these into **logical** (a.k.a. TRUE/FALSE) values with the `as.logical()` function. We can then use this logical vector to access the coresponding candy rows (those with TRUE values).  For example to get the `winpercent` values for all nougat contaning candy we can use the code: `candy$winpercent[as.logical(candy$nougat)]`. In addation the functions `mean()` and `t.test()` should help you answer the last two questions here.  
+
+
+```{r, echo=FALSE}
+chocolate <- candy$winpercent[as.logical(candy$chocolate)]
+fruity <- candy$winpercent[as.logical(candy$fruity)]
+
+#mean(chocolate)
+#mean(fruity)
+
+t.test(chocolate, fruity)
+```
+:::
+
+```{r, echo=FALSE, include=FALSE}
+hist(candy$winpercent, xlim=c(0,100))
+```
+
+```{r, echo=FALSE, include=FALSE}
+library(ggplot2)
+
+# Plot a histogram of winpercent
+ggplot(candy, aes(winpercent)) +
+  geom_histogram(bins=12) + xlim(0,100)
+```
+
+# 3. Overall Candy Rankings
+
+Let's use the base R `order()` function together with `head()` to sort the whole dataset by `winpercent`. Or if you have been getting into the tidyverse and the **dplyr** package you can use the `arrange()` function together with `head()` to do the same thing and answer the following questions:
+
+
+::: {.q_box}
+- **Q13**. What are the five least liked candy types in this set?
+- **Q14**. What are the top 5 all time favorite candy types out of this set?
+
+> **Hint**: Using base R we could use `head(candy[order(candy$winpercent),], n=5)`, whilst using **dplyr** we have: `candy %>% arrange(winpercent) %>% head(5)`. Which apprach do you prefer and why?
+:::
+
+```{r, echo=FALSE, include=FALSE}
+ord <- order(candy$winpercent)
+head(candy[ord,], n=5)
+
+# or with dplyr
+library(dplyr)
+candy %>% arrange(winpercent) %>% head(5)
+```
+
+
+To examine more of the dataset in this vain we can make a barplot to visualize the overall rankings. We will use an iterative approach to building a useful visulization by getting a rough starting plot and then refining and adding useful details in a stepwise process. 
+
+::: {.q_box}
+- **Q15**. Make a first barplot of candy ranking based on `winpercent` values.
+
+> **HINT**: Use the `aes(winpercent, rownames(candy))` for your first ggplot like so:   
+
+```{r, eval=FALSE}
+library(____)
+
+ggplot(____) + 
+  aes(winpercent, rownames(candy)) +
+  geom_____()
+```
+
+```{r, echo=FALSE, fig.width=10, fig.height=15}
+library(ggplot2)
+
+ggplot(candy) + 
+  aes(winpercent, rownames(candy)) +
+  geom_col() + labs(y="")
+```
+
+
+
+- **Q16**. This is quite ugly, use the `reorder()` function to get the bars sorted by `winpercent`?
+
+> **HINT**: You can use `aes(winpercent, reorder(rownames(candy),winpercent))` to improve your plot.
+
+```{r, echo=FALSE, fig.width=10, fig.height=15}
+ggplot(candy) + 
+  aes(winpercent, reorder(rownames(candy),winpercent)) +
+  geom_col()
+```
+
+:::
+
+### Time to add some useful color
+
+Let's setup a color vector (that signifies candy type) that we can then use for some future plots. We start by making a vector of all black values (one for each candy). Then we overwrite chocolate (for chocolate candy), brown (for candy bars) and red (for fruity candy) values.
+
+```{r}
+my_cols=rep("black", nrow(candy))
+my_cols[as.logical(candy$chocolate)] = "chocolate"
+my_cols[as.logical(candy$bar)] = "brown"
+my_cols[as.logical(candy$fruity)] = "pink"
+
+```
+
+Now let's try our barplot with these colors. Note that we use `fill=my_cols` for `geom_col()`. Experement to see what happens if you use `col=mycols`.
+
+```{r, fig.width=10, fig.height=15}
+ggplot(candy) + 
+  aes(winpercent, reorder(rownames(candy),winpercent)) +
+  geom_col(fill=my_cols) 
+
+```
+
+::: {.q_box}
+Now, for the first time, using this plot we can answer questions like:   
+- **Q17**. What is the worst ranked chocolate candy?  
+- **Q18**. What is the best ranked fruity candy?
+
+:::
+
+
+
+ 
+
+# 4. Taking a look at pricepercent
+
+What about value for money? What is the the best candy for the least money? One way to get at this would be to make a plot of `winpercent` vs the `pricepercent` variable. The `pricepercent` variable records the percentile rank of the candy's price against all the other candies in the dataset. Lower vales are less expensive and high values more expensive.
+
+To this plot we will add text labels so we can more easily identify a given candy. There is a regular `geom_label()` that comes with ggplot2. However, as there are quite a few candys in our dataset lots of these labels will be overlapping and hard to read. To help with this we can use the `geom_text_repel()` function from the **ggrepel** package.
+
+```{r echo=FALSE}
+my_cols[as.logical(candy$fruity)] = "red"
+```
+
+```{r, message=FALSE}
+library(ggrepel)
+
+# How about a plot of price vs win
+ggplot(candy) +
+  aes(winpercent, pricepercent, label=rownames(candy)) +
+  geom_point(col=my_cols) + 
+  geom_text_repel(col=my_cols, size=3.3, max.overlaps = 5)
+```
+
+::: {.q_box}
+- **Q19**. Which candy type is the highest ranked in terms of `winpercent` for the least money - i.e. offers the most bang for your buck?
+- **Q20**. What are the top 5 most expensive candy types in the dataset and of these which is the least popular?
+
+> **Hint**: To see which candy is the most expensive (and which is the least expensive) we can `order()` the dataset by `pricepercent`.
+> 
+> ```{r}
+> ord <- order(candy$pricepercent, decreasing = TRUE)
+> head( candy[ord,c(11,12)], n=5 )
+> ```
+
+:::
+
+
+----
+::: {.q_box}
+### Optional
+- **Q21**. Make a barplot again with `geom_col()` this time using `pricepercent` and then improve this step by step, first ordering the x-axis by value and finally making a so called "dot chat" or "lollipop" chart by swapping `geom_col()` for `geom_point()` + `geom_segment()`. 
+
+```{r, echo=FALSE, fig.width=10, fig.height=15}
+ggplot(candy) +
+  aes(pricepercent, reorder(rownames(candy), pricepercent)) +
+  geom_col() + labs(y="",)
+```
+
+
+```{r, fig.width=10, fig.height=15}
+# Make a lollipop chart of pricepercent
+ggplot(candy) +
+  aes(pricepercent, reorder(rownames(candy), pricepercent)) +
+  geom_segment(aes(yend = reorder(rownames(candy), pricepercent), 
+                   xend = 0), col="gray40") +
+    geom_point()
+```
+
+One of the most interesting aspects of this chart is that a lot of the candies share the same ranking, so it looks like quite a few of them are the same price.
+:::
+
+
+# 5 Exploring the correlation structure
+
+Now that we've explored the dataset a little, we'll see how the variables interact with one another. We'll use correlation and view the results with the **corrplot** package to plot a correlation matrix. 
+
+
+```{r}
+library(corrplot)
+cij <- cor(candy)
+corrplot(cij)
+```
+
+::: {.q_box}
+- **Q22**. Examining this plot what two variables are anti-correlated (i.e. have minus values)? 
+- **Q23**. Similarly, what two variables are most positively correlated?
+
+> **HINT**: Do you like chocolaty fruity candies?
+:::
+
+
+# 6. Principal Component Analysis
+
+Let's apply PCA using the `prcom()` function to our candy dataset remembering to set the `scale=TRUE` argument. 
+
+> **Side-note**: Feel free to examine what happens if you leave this argument out (i.e. use the default `scale=FALSE`). Then examine the `summary(pca)` and `pca$rotation[,1]` component and see that it is dominated by `winpercent` (which is after all measured on a very different scale than the other variables).  
+
+```{r, eval=FALSE}
+pca <- ____(candy, ____)
+summary(pca)
+```
+
+```{r, echo=FALSE}
+pca <- prcomp(candy, scale=TRUE)
+summary(pca)
+```
+
+Now we can plot our main PCA score plot of PC1 vs PC2.
+
+```{r, eval=FALSE}
+plot(pca$____[,____])
+```
+
+```{r, echo=FALSE}
+plot(pca$x[,1:2])
+```
+
+We can change the plotting character and add some color:
+
+```{r}
+plot(pca$x[,1:2], col=my_cols, pch=16)
+```
+
+We can make a much nicer plot with the **ggplot2** package but it is important to note that ggplot works best when you supply an input data.frame that includes a separate column for each of the aesthetics you would like displayed in your final plot. To accomplish this we make a new data.frame here that contains our PCA results with all the rest of our candy data. We will then use this for making plots below
+
+```{r}
+# Make a new data-frame with our PCA results and candy data
+my_data <- cbind(candy, pca$x[,1:3])
+```
+
+
+
+```{r}
+p <- ggplot(my_data) + 
+        aes(x=PC1, y=PC2, 
+            size=winpercent/100,  
+            text=rownames(my_data),
+            label=rownames(my_data)) +
+        geom_point(col=my_cols)
+
+p
+```
+
+
+Again we can use the  **ggrepel** package and the function `ggrepel::geom_text_repel()` to label up the plot with non overlapping candy names like. We will also add a title and subtitle like so:
+
+```{r, warning=FALSE}
+library(ggrepel)
+
+p + geom_text_repel(size=3.3, col=my_cols, max.overlaps = 7)  + 
+  theme(legend.position = "none") +
+  labs(title="Halloween Candy PCA Space",
+       subtitle="Colored by type: chocolate bar (dark brown), chocolate other (light brown), fruity (red), other (black)",
+       caption="Data from 538")
+```
+If you want to see more candy labels you can change the `max.overlaps` value to allow more overlapping labels or pass the ggplot object `p` to **plotly** like so to generate an interactive plot that you can mouse over to see labels:
+
+```{r}
+library(plotly)
+ggplotly(p)
+```
+
+Let's finish by taking a quick look at PCA our loadings. Do these make sense to you? Notice the opposite effects of `chocolate` and `fruity` and the similar effects of `chocolate` and `bar` (i.e. we already know they are correlated).
+
+```{r}
+par(mar=c(8,4,2,2))
+barplot(pca$rotation[,1], las=2, ylab="PC1 Contribution")
+```
+
+::: {.q_box}
+- **Q24**. What original variables are picked up strongly by PC1 in the positive direction? Do these make sense to you?
+
+> **HINT**. pluribus means the candy comes in a bag or box of multiple candies.
+
+:::
+
+## Optional extension questions
+```{r}
+losers = candy[which(candy$winpercent < 50),]
+winners = candy[which(candy$winpercent >= 50),]
+```
+
+Q. Are popular candies more expensive?
+```{r}
+# Is price significantly different between winners and losers?
+t.test(losers$pricepercent,winners$pricepercent)  # p-value .0006
+# Avg Losers cost: $0.37, Avg Winners cost: $0.58 - wow!
+```
+
+Q. Are candies with more sugar more likely to be popular?
+```{r}
+t.test(losers$sugarpercent,winners$sugarpercent)  # p-value .09
+# No significant difference
+```
+
+Q. Are pluribus candies more common among winners or losers?
+```{r}
+t.test(losers$pluribus, winners$pluribus)  # p-value .17
+# No significant difference
+```
+
+Q. Are there more chocolate candies in the winners?
+```{r}
+t.test(losers$chocolate, winners$chocolate)  # p-value <.0001
+# There are a lot more chocolates in the winners group
+```
+
+Q. Are there more fruity candies in the winners?
+```{r}
+t.test(losers$fruity, winners$fruity)  # p-value .004
+# Lots more fruity candies in the losers group
+```
+
+Q.  Are there more peanut butter/almond candies in the winners?
+```{r}
+t.test(losers$peanutyalmondy, winners$peanutyalmondy)  # p-value .002
+# There are a lot more winners with almonds or peanut butter
+```
+
