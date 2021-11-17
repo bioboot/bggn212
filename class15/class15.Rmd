@@ -1,0 +1,252 @@
+---
+title: 'Class 15: RNASeq analysis'
+author: 'Barry (PID: 911)'
+date: "11/17/2021"
+output: html_document
+---
+
+# Background
+
+Today we examine a published RNA-seq experiment where airway smooth muscle cells were treated with dexamethasone, a synthetic glucocorticoid steroid with anti-inflammatory effects (Himes et al. 2014).
+
+## Load the contData and colData
+
+We need 2 things 
+- 1: count data
+- 2: colData (the metadata that tells us about the design of the experiment).
+
+
+```{r}
+counts <- read.csv("airway_scaledcounts.csv", row.names=1)
+metadata <- read.csv("airway_metadata.csv")
+```
+
+```{r}
+head(counts)
+```
+
+```{r}
+head(metadata)
+```
+
+Side-note:
+Let's check the corespondence of the metadata and count data setup.
+
+```{r}
+metadata$id
+```
+
+```{r}
+colnames(counts)
+```
+
+We can use the `==` thing to see if they are the same
+
+```{r}
+all(metadata$id == colnames(counts))
+
+```
+
+```{r}
+all( c(T,T,T,T,T,T,F) )
+```
+
+## Compare control to treated
+
+First wee need to access all the control columns in our counts data.
+
+```{r}
+control.inds <- metadata$dex == "control"
+control.ids <- metadata[ control.inds, ]$id
+```
+
+Use these ids to access just the control columns of our `counts` data
+
+```{r}
+control.mean <- rowMeans(counts[ , control.ids] )
+head(control.mean)
+```
+
+Do the same for the drug treated...
+```{r}
+treated.id <- metadata[ metadata$dex == "treated", ]$id
+treated.mean <- rowMeans(counts[,treated.id])
+```
+
+
+We will combine our meancount data for bookkeeping purposes.
+
+```{r}
+meancounts <- data.frame(control.mean, treated.mean)
+```
+
+There are `r nrow(counts)` rows/genes in this dataset
+
+```{r}
+nrow(counts)
+```
+
+## Compare the control and treated
+
+A quick plot of our progress so far
+
+```{r}
+plot(meancounts)
+```
+
+This would benefit from a log transform! Let's plot on a log log scale
+
+```{r}
+plot(meancounts, log="xy")
+```
+
+We often use log transformations as they make life much nicer in this world...
+
+```{r}
+log2(20/20)
+```
+```{r}
+log2(40/20)
+```
+```{r}
+log2(10/20)
+```
+```{r}
+log2(80/20)
+```
+
+Cool. I like log2!
+
+```{r}
+meancounts$log2fc <- log2(meancounts[,"treated.mean"]/
+                          meancounts[,"control.mean"])
+head(meancounts)
+```
+
+We need to drop the zero count genes/rows!
+
+```{r}
+head(meancounts[,1:2])
+```
+
+
+```{r}
+head(meancounts[,1:2] == 0)
+```
+
+The `which()` function tells us the indices of TRUE entries in a logical vector.
+
+```{r}
+which( c(T,F,T) )
+```
+However, it is not that useful in default mode on our type of multi column input....
+
+```{r}
+inds <- which(meancounts[,1:2] == 0, arr.ind=TRUE)
+head(inds)
+```
+I only care about the rows here (if there is a zero in any column I will exclude this row eventually).
+
+```{r}
+to.rm <- unique(sort(inds[,"row"]))
+```
+
+```{r}
+mycounts <- meancounts[-to.rm,]
+head(mycounts )
+```
+
+We now have `r nrow(mycounts)` genes remaining.
+
+```{r}
+nrow(mycounts)
+```
+How many of these genes are up regulated at the log2 fold-change threshold of +2 or greater?
+
+```{r}
+sum(mycounts$log2fc > +2)
+```
+
+What percentage is this?
+
+```{r}
+round((sum(mycounts$log2fc > +2) / nrow(mycounts))*100, 2)
+```
+How about down?
+
+```{r}
+sum(mycounts < -2)
+```
+
+# DESeq2 analysis
+
+```{r}
+library(DESeq2)
+```
+We first need to setup the DESeq input object.
+
+```{r}
+dds <- DESeqDataSetFromMatrix(countData=counts, 
+                              colData=metadata, 
+                              design=~dex)
+```
+Run the DESeq analysis pipeline.
+
+```{r}
+dds <- DESeq(dds)
+```
+
+```{r}
+res <- results(dds)
+head(res)
+```
+
+# A Volcano plot
+
+This is a very common data viz of this type of data that does not really look like a volcano.
+
+```{r}
+plot(res$log2FoldChange, -log(res$padj))
+abline(v=c(-2,2), col="gray")
+abline(h=-log(0.05), col="gray" )
+```
+
+## Adding annotation data
+
+We want to add meaningful gene names to our dataset so we can make some sense of what is going on here...
+
+For this we will use two bioconductor packages, one does the work and is called **AnnotationDbi** the other contains the data we are going to map between and is called **org.Hs.eg.db**.
+
+First I need to install with `BiocManager::install("org.Hs.eg.db")` and
+`BiocManager::install("AnnotationDbi")`.
+
+```{r}
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+```
+```{r}
+columns(org.Hs.eg.db)
+```
+
+Here we map to "SYMBOL" the comon gene name that the world understands and wants.
+
+```{r}
+res$symbol <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), 
+                     keytype="ENSEMBL",   
+                     column="SYMBOL",   
+                     multiVals="first")
+
+```
+
+
+```{r}
+head(res)
+```
+
+# Lets finally save our results to date
+
+```{r}
+write.csv(res, file = "allmyresults.csv")
+```
+
