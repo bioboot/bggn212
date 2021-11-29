@@ -250,3 +250,97 @@ head(res)
 write.csv(res, file = "allmyresults.csv")
 ```
 
+# Pathway analysis
+
+Let's try to bring some biology insight back into this work. For this we will start with KEGG.
+
+
+```{r message=FALSE}
+library(pathview)
+library(gage)
+library(gageData)
+```
+
+```{r}
+data(kegg.sets.hs)
+
+# Examine the first 2 pathways in this kegg set for humans
+head(kegg.sets.hs, 2)
+```
+Before we can use KEGG we need to get our gene identifiers in the correct format for KEGG, which is ENTREZ format in this case.
+
+```{r}
+head( rownames(res) )
+```
+
+```{r}
+columns(org.Hs.eg.db)
+```
+
+```{r}
+res$entrez <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), 
+                     keytype="ENSEMBL",   
+                     column= "ENTREZID",   
+                     multiVals="first")
+
+
+res$genename <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), 
+                     keytype="ENSEMBL",   
+                     column= "GENENAME",   
+                     multiVals="first")
+```
+
+have a wee look...
+```{r}
+head(res)
+```
+
+The main **gage()** function requires a named vector of fold changes, where the names of the values are the Entrez gene IDs.
+
+Note that we used the mapIDs() function above to obtain Entrez gene IDs (stored in res$entrez) and we have the fold change results from DESeq2 analysis (stored in res$log2FoldChange).
+
+```{r}
+foldchanges <- res$log2FoldChange
+head(foldchanges)
+```
+
+Assign names to this vector that are the gene IDs that KEGG wants.
+
+```{r}
+names(foldchanges) <- res$entrez
+head(foldchanges)
+```
+
+Now we are ready for the **gage()** function.
+
+
+```{r}
+# Get the results
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+```
+
+We can look at the attributes() of this or indeed any R object.
+
+```{r}
+attributes(keggres)
+```
+
+```{r}
+head(keggres$less, 3)
+```
+The pathview() function will add our genes to a KEGG pathway as colored entries:
+
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa05310")
+```
+
+![](hsa05310.pathview.png)
+
+
+
+
+
+
+
