@@ -1,0 +1,213 @@
+---
+title: 'Class16: RNASeq Mini Project'
+author: 'Barry (PID: 911)'
+date: "11/19/2021"
+output: html_document
+---
+
+# Background
+
+The data for for hands-on session comes from GEO entry: GSE37704, which is associated with the following publication:
+
+> Trapnell C, Hendrickson DG, Sauvageau M, Goff L et al. "Differential analysis of gene regulation at transcript resolution with RNA-seq". Nat Biotechnol 2013 Jan;31(1):46-53. PMID: 23222703
+
+The authors report on differential analysis of lung fibroblasts in response to loss of the developmental transcription factor HOXA1.
+
+# 1. Data Import
+
+Read in the countdata and coldata that we need
+
+```{r}
+countData <- read.csv("GSE37704_featurecounts.csv", row.names = 1)
+colData <- read.csv("GSE37704_metadata.csv", row.names=1)
+```
+
+And have a wee look
+
+```{r}
+head(colData)
+```
+
+```{r}
+head(countData)
+```
+
+
+## Enforce corespondence of coldata and countdata
+
+We need to remove the first `length` column
+
+```{r}
+counts <- countData[, -1]
+head(counts)
+```
+
+## Remove zero count genes
+
+```{r}
+counts <- counts[rowSums(counts) != 0,]
+head(counts)
+```
+
+```{r}
+nrow(counts)
+```
+
+
+# 2. PCA for Quality Control
+
+I am going to use the base R `prcomp()` function for PCA of our counts data (from which I have removed the zero count genes).
+
+```{r}
+pca <- prcomp( t(counts) )
+summary(pca)
+```
+
+Quick plot
+```{r}
+plot(pca$x[,1:2])
+```
+
+
+
+```{r}
+plot(pca$x[,1:2], pch =16, col=as.factor(colData$condition))
+text(pca$x[,1:2], labels = colData$condition)
+```
+
+Or a ggplot version
+```{r}
+library(ggplot2)
+
+x <- as.data.frame(pca$x)
+x$condition <- colData$condition
+
+ggplot(x) +
+  aes(PC1, PC2, col=condition) +
+  geom_point()
+```
+
+
+
+This looks fine - the first PC separates out the KD from the control!
+
+
+
+# 3. DESeq analysis
+
+```{r}
+library(DESeq2)
+
+dds <- DESeqDataSetFromMatrix(countData=counts,
+                              colData=colData,
+                              design=~condition)
+```
+And run the DESeq analysis
+
+```{r}
+dds <- DESeq(dds)
+res <- results(dds)
+head(res)
+```
+```{r}
+summary(res)
+```
+
+# 4. Volcano Plot
+
+Let's do the classic log2-FoldChange vs P-value overview plot...
+
+```{r}
+plot(res$log2FoldChange, -log(res$padj))
+```
+
+Let's add some color
+
+```{r}
+mycols <- rep("gray", nrow(res))
+
+mycols[ abs(res$log2FoldChange) > 2 ] = "red"
+mycols[res$padj > 0.05] = "gray"
+
+plot(res$log2FoldChange, -log(res$padj), col=mycols)
+```
+
+
+
+
+# 5. Annotation
+
+Add gene names and entrez IDs as required...
+
+```{r}
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+
+columns(org.Hs.eg.db)
+```
+
+
+```{r}
+columns(org.Hs.eg.db)
+
+res$symbol = mapIds(org.Hs.eg.db,
+                    keys=row.names(res), 
+                    keytype="ENSEMBL",
+                    column="SYMBOL",
+                    multiVals="first")
+
+res$entrez = mapIds(org.Hs.eg.db,
+                    keys=row.names(res),
+                    keytype="ENSEMBL",
+                    column="ENTREZID",
+                    multiVals="first")
+
+res$name =   mapIds(org.Hs.eg.db,
+                    keys=row.names(res),
+                    keytype="ENSEMBL",
+                    column="GENENAME",
+                    multiVals="first")
+
+head(res, 10)
+```
+
+
+# 6. Pathway analysis
+
+```{r}
+library(pathview)
+library(gage)
+library(gageData)
+
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+
+# Focus on signaling and metabolic pathways only
+kegg.sets.hs = kegg.sets.hs[sigmet.idx.hs]
+
+```
+
+Make the input foldchange vector for KEGG and GO etc.
+
+```{r}
+foldchanges = res$log2FoldChange
+names(foldchanges) = res$entrez
+head(foldchanges)
+```
+
+```{r}
+# Get the results
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+```
+
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa04110")
+
+```
+
+![](hsa04110.pathview.png)
+
+
+
+
+
