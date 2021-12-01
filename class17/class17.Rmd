@@ -2,9 +2,7 @@
 title: 'Class17: COVID-19 vaccination rate mini project'
 author: 'Barry (PID: 911)'
 date: "11/24/2021"
-output:
-  pdf_document:
-    latex_engine: xelatex
+output: github_document
 ---
 
 # Background
