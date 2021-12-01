@@ -1,5 +1,4 @@
-remote_theme: benbalter/retlab
+theme: jekyll-theme-minimal 
 logo: https://bioboot.github.io/bimm143_F21/assets/img/logo.png
 title: Barry's Demo Class Portifilio
-minima:
-  skin: dark
+
