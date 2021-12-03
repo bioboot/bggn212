@@ -3,12 +3,15 @@ title: "Machine Learning 1"
 author: 'Barry (PID: 911)'
 date: "10/22/2021"
 output: github_document
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 # Clustering methods
 
-Kmeans clustering in R is done with the `kmeans()` function.
-Here we makeup some data to test and learn with.
+Kmeans clustering in R is done with the `kmeans()` function. Here we
+makeup some data to test and learn with.
 
 ```{r}
 tmp <- c(rnorm(30, 3), rnorm(30, -3) )
@@ -16,7 +19,9 @@ data <- cbind(x=tmp, y=rev(tmp))
 plot(data)
 ```
 
-Run `kmeans()` set k (centers) to 2 (i.e. the number of clusters we want) nstart 20 (to tun multiple times). The thing with Kmeans is you have to tell it how many clusters you want.
+Run `kmeans()` set k (centers) to 2 (i.e. the number of clusters we
+want) nstart 20 (to tun multiple times). The thing with Kmeans is you
+have to tell it how many clusters you want.
 
 ```{r}
 km <- kmeans(data, centers = 2, nstart=20)
@@ -28,19 +33,22 @@ km
 ```{r}
 km$size
 ```
-> Q. What ‘component’ of your result object details cluster assignment/membership? 
+
+> Q. What 'component' of your result object details cluster
+> assignment/membership?
 
 ```{r}
 km$cluster
 ```
 
-> Q. What ‘component’ of your result object details cluster center?
+> Q. What 'component' of your result object details cluster center?
 
 ```{r}
 km$centers
 ```
 
-> Q. Plot x colored by the kmeans cluster assignment and add cluster centers as blue points
+> Q. Plot x colored by the kmeans cluster assignment and add cluster
+> centers as blue points
 
 ```{r}
 plot(data, col=km$cluster)
@@ -49,7 +57,8 @@ points(km$centers, col="blue", pch=15, cex=2)
 
 # Hierarchical Clustering
 
-We will use the `hclust()` function on the same data as before and see how this method works.
+We will use the `hclust()` function on the same data as before and see
+how this method works.
 
 ```{r}
 hc <- hclust( dist(data) )
@@ -63,7 +72,8 @@ plot(hc)
 abline(h=7, col="red")
 ```
 
-To find our membership vector we need to "cut" the tree and for this we use the `cutree()` function and tell it the height to cut at.
+To find our membership vector we need to "cut" the tree and for this we
+use the `cutree()` function and tell it the height to cut at.
 
 ```{r}
 cutree(hc, h=7)
@@ -79,10 +89,10 @@ grps <- cutree(hc, k=2)
 plot(data, col=grps)
 ```
 
-
 # Principal Component Analysis (PCA)
 
-PCA is a super useful analysis method when you have lots of dimensions in your data...
+PCA is a super useful analysis method when you have lots of dimensions
+in your data...
 
 ## PCA of UK food data
 
@@ -94,12 +104,15 @@ x <- read.csv(url)
 ```
 
 How many rows and cols?
+
 ```{r}
 dim(x)
 ```
+
 ```{r}
 x[,-1]
 ```
+
 ```{r}
 rownames(x) <- x[,1]
 x <- x[,-1]
@@ -116,7 +129,6 @@ x
 barplot( as.matrix(x), col=rainbow(17) )
 ```
 
-
 ```{r}
 barplot( as.matrix(x), col=rainbow(17), beside=TRUE )
 ```
@@ -128,7 +140,8 @@ pairs(x, col=mycols, pch=16)
 
 ## PCA to the rescue!
 
-Here we will use the base R function for PCA, which is called `prcomp()`. This function wants the transpose of of data.
+Here we will use the base R function for PCA, which is called
+`prcomp()`. This function wants the transpose of of data.
 
 ```{r}
 
@@ -162,16 +175,14 @@ ggplot(df) +
   geom_text()
 ```
 
-
-
-We can also examine the PCA "loadings", which tell us how much the original variables contribute to each new PC...
+We can also examine the PCA "loadings", which tell us how much the
+original variables contribute to each new PC...
 
 ```{r}
 par(mar=c(10, 3, 0.35, 0))
 
 barplot(pca$rotation[,1], las=2)
 ```
-
 
 ## One more PCA for today
 
@@ -188,9 +199,11 @@ nrow(rna.data)
 ```{r}
 ncol(rna.data)
 ```
+
 ```{r}
 colnames(rna.data)
 ```
+
 ```{r}
 pca.rna <- prcomp( t(rna.data), scale=TRUE )
 summary(pca.rna)
@@ -207,3 +220,171 @@ text(pca.rna$x[,1:2], labels = colnames(rna.data))
 
 Let's Knit to PDF and also github_document then push to github.
 
+## Cancer cell data
+
+```{r}
+url <- "https://bioboot.github.io/bimm143_S20/class-material/WisconsinCancer.csv"
+
+wisc.df <- read.csv(url, row.names=1)
+```
+
+```{r}
+# We can use -1 here to remove the first column
+wisc.data <- wisc.df[,-1]
+```
+
+```{r}
+# Create diagnosis vector for later 
+diagnosis <-  wisc.df[,1] 
+```
+
+```{r}
+wisc.pr <- prcomp( wisc.data, scale=TRUE )
+summary(wisc.pr)
+```
+
+```{r}
+plot( wisc.pr$x[,1:2] , col = as.factor(diagnosis))
+#, 
+#     xlab = "PC1", ylab = "PC2")
+```
+
+ggplot this
+
+```{r}
+df <- as.data.frame(wisc.pr$x)
+df$diagnosis <- diagnosis
+
+# Load the ggplot2 package
+library(ggplot2)
+
+# Make a scatter plot colored by diagnosis
+ggplot(df) + 
+  aes(PC1, PC2, col=diagnosis) + 
+  geom_point()
+```
+
+```{r}
+d <- dist(wisc.pr$x[,1:7])
+hc <- hclust(d, method = "ward.D2")
+```
+
+Plot the tree
+
+```{r}
+plot(hc)
+```
+
+```{r}
+grps <- cutree(hc, k=2)
+table(grps)
+```
+
+```{r}
+table(grps, diagnosis)
+```
+
+for B FN TN TP FP
+
+for M FP TP TN FN
+
+```{r}
+table(diagnosis)
+```
+
+```{r}
+table(grps, diagnosis)[1,] / table(diagnosis)
+table(grps, diagnosis)[2,] / table(diagnosis)
+
+```
+
+So we have a 92% accuracy getting B (7.8% wrong) and 88% accuracy
+getting M (11% wrong).
+
+Sensitivity = TP / TP + FP
+
+```{r}
+table(grps, diagnosis)
+```
+
+```{r}
+329 / (329 + 24)
+```
+
+```{r}
+188/ (188 +28)
+```
+
+Specificity = TN / TN + FN
+
+Specificity For B prediction
+
+```{r}
+188 / (188 + 28)
+#nrow(wisc.data)
+```
+
+Specificity for M prediction
+
+```{r}
+329 / (329 + 24)
+```
+
+Prevalence = (A+C)/(A+B+C+D) = (TP + FP)/TP + ? + FP +
+
+![](images/Screen%20Shot%202021-10-22%20at%205.00.34%20PM.png)
+
+Often called a **Confusion Matrix**
+
+```{r}
+table(grps, diagnosis)
+```
+
+Code-Sensitivity and Specificity
+
+```{r}
+library(caret)
+conf_matrix <- table(as.factor(grps), as.factor(diagnosis))
+#colnames(conf_matrix) = c(0,1)
+#rownames(conf_matrix) = c(1,0)
+conf_matrix
+#sensitivity(conf_matrix)
+
+```
+
+```{r}
+lvs <- c("normal", "abnormal")
+truth <- factor(rep(lvs, times = c(86, 258)),
+                levels = rev(lvs))
+pred <- factor(
+               c(
+                 rep(lvs, times = c(54, 32)),
+                 rep(lvs, times = c(27, 231))),
+               levels = rev(lvs))
+
+xtab <- table(pred, truth)
+
+```
+
+```{r}
+truth <- as.factor(diagnosis)
+pred <- rep("M",length(truth))
+pred[as.logical(grps-1)] = "B"
+pred <- as.factor(pred)
+pred
+#  grps
+xtab <- table(pred, truth)
+xtab
+```
+
+```{r}
+#sensitivity(pred, truth)
+sensitivity(xtab)
+posPredValue(pred, truth)
+
+```
+```{r}
+specificity(pred, truth)
+```
+
+Make this more clear....
