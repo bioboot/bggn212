@@ -2,9 +2,7 @@
 title: 'Class 10: Candy mini project'
 author: 'Barry (PID: 911)'
 date: "10/29/2021"
-output: 
-  pdf_document:
-    latex_engine: xelatex
+output: github_document
 ---
 
 # Read the data
