@@ -1,3 +1,9 @@
+#' ---
+#' title: "Data Visualization"
+#' output: github_document
+#' ---
+
+
 # Class 05: Data Visualization
 
 # Today we are going to use ggplot2 package
@@ -71,8 +77,8 @@ ggplot(gapminder) +
 
 # Install the plotly
 # install.packages("plotly")
-library(plotly)
-ggplotly()
+#library(plotly)
+#ggplotly()
 
 
 
